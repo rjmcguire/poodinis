@@ -15,6 +15,7 @@ module poodinis.context;
 
 import poodinis.container;
 import poodinis.registration;
+import poodinis.factory;
 
 import std.traits;
 
@@ -37,7 +38,7 @@ struct RegisterByType(Type) {
 }
 
 /**
-* Components with the prototype registration will be scoped as dependencies which will created
+* Components with the prototype registration will be scoped as dependencies which will create
 * new instances every time they are resolved. The factory method will be called repeatedly.
 */
 struct Prototype {}
@@ -61,7 +62,7 @@ public void registerContextComponents(ApplicationContextType : ApplicationContex
 				registration = container.register!(ReturnType!factoryMethod);
 			}
 
-			registration.instanceFactory = new InstanceFactory(registration.instanceType, createsSingleton, null, factoryMethod);
+			registration.instanceFactory.factoryParameters = InstanceFactoryParameters(registration.instanceType, createsSingleton, null, factoryMethod);
 		}
 	}
 }

@@ -6,11 +6,10 @@ The container
 -------------
 To register a class, a new dependency container must be instantiated:
 ```d
-// Register a private container
-shared(DependencyContainer) dependencies = new DependencyContainer();
-// Or use the singleton container
-dependencies = DependencyContainer.getInstance();
+// Create a shared container
+auto dependencies = new shared DependencyContainer();
 ```
+A shared dependency container is thread-safe and resolves the same dependencies across all threads.
 ###Registering dependencies
 To make dependencies available, they have to be registered:
 ```d
@@ -67,9 +66,11 @@ auto preExistingInstance = new ExampleClass();
 dependencies.register!ExampleClass.existingInstance(preExistingInstance);
 ```
 
-Autowiring
+Automatic Injection
 ----------
-The real value of any dependency injection framework comes from its ability to autowire dependencies. Poodinis supports autowiring by simply applying the `@Autowire` UDA to a member of a class:
+The real value of any dependency injection framework comes from its ability to automatically inject dependencies. Poodinis supports automatic injection either through autowiring members annotated with the `@Autowire` UDA or through constructor injection.
+### UDA-based autowiring
+UDA-based autowiring can be achieved by annotating members of a class with the `@Autowire` UDA:
 ```d
 class ExampleClassA {}
 
@@ -85,14 +86,14 @@ assert(exampleInstance.dependency !is null);
 ```
 It is possible to autowire public as well as protected and private members.
 
-Dependencies are automatically autowired when a class is resolved. So when you register `ExampleClassB`, its member `dependency` is automatically autowired:
+Dependencies are automatically autowired when a class is resolved. So when you resolve `ExampleClassB`, its member `dependency` is automatically autowired:
 ```d
 dependencies.register!ExampleClassA;
 dependencies.register!ExampleClassB;
 auto instance = dependencies.resolve!ExampleClassB;
 assert(instance.dependency !is null);
 ```
-If an interface is to be autowired, you must register a concrete class by interface. Any class registered by concrete type can only be injected when a dependency on a concrete type is autowired.
+If an interface is to be autowired, you must register a concrete class by interface. A class registered only by concrete type can only be injected into members of that type, not its supertypes.
 
 Using the UDA `OptionalDependency` you can mark an autowired member as being optional. When a member is optional, no ResolveException will be thrown when
 the type of the member is not registered and `ResolveOption.registerBeforeResolving` is not set on the container. The member will remain null or an empty array in
@@ -105,9 +106,38 @@ class ExampleClass {
 }
 ```
 
+### Constructor injection
+Poodinis also supports automatic injection of dependencies through constructors:
+```d
+class ExampleClassA {}
+
+class ExampleClassB {
+	private ExampleClassA dependency;
+
+	this(ExampleClassA dependency) {
+		this.dependency = dependency;
+	}
+}
+
+dependencies.register!ExampleClassA;
+dependencies.register!ExampleClassB;
+
+auto instance = dependencies.resolve!ExampleClassB;
+ 
+```
+`ExampleClassA` is automatically resolved and passed to `ExampleClassB`'s constructor. 
+Classes with multiple constructors can be injected. The following rules apply to constructor injection:
+* Injection is attempted at the order of declaration. However, this is compiler dependant and may not always be the case.
+* Injection is attempted for the first constructor which has non-builtin types only in its parameter list.
+* When a constructor with an empty parameter list is found, no other constructors are attempted (and nothing is injected). This can be used to explicitly prevent constructor injection.
+* When no injectable constructor is found an InstanceCreationException will be thrown on resolve.
+
+If the constructors of a class are not suitable for injection, you could manually configure its creation using Application Contexts (see chapter further down).  
+Constructor injection has the advantage of not having to import Poodinis throughout your application.
+
 Circular dependencies
 ---------------------
-Poodinis can autowire circular dependencies when they are registered with `singleInstance` or `existingInstance` registration scopes. Circular dependencies in registrations with `newInstance` scopes will not be autowired, as this would cause an endless loop.
+Poodinis can autowire circular dependencies when they are registered with `singleInstance` or `existingInstance` registration scopes. Circular dependencies in registrations with `newInstance` scopes will not be autowired, as this would cause an endless loop. Circular dependencies are only supported when autowiring members through the `@Autowire` UDA; circular dependencies in constructors are not supported and will result in an `InstanceCreationException`.
 
 Registering and resolving using qualifiers
 ------------------------------------------
@@ -142,7 +172,7 @@ dependencies.register!(Color, Blue);
 dependencies.register!(Color, Red);
 auto mixer = dependencies.resolve!ColorMixer;
 ```
-Member `mixer.colors` will now contain instances of `Blue` and `Red`. The order in which instances are resolved is not guarenteed to be that of the order in which they were registered.
+Member `mixer.colors` will now contain instances of `Blue` and `Red`. The order in which instances are resolved is not guaranteed to be that of the order in which they were registered.
 
 Application Contexts
 --------------------
@@ -159,7 +189,7 @@ class Context : ApplicationContext {
 	
 	@Component
 	public SomeLibraryClass libraryClass() {
-		return new SomeLibraryClass("This class needs constructor parameters so I have to register it through an application context");
+		return new SomeLibraryClass("This class uses a constructor parameter of a built-in type so I have to register it through an application context");
 	}
 }
 ```
@@ -214,10 +244,16 @@ class Context : ApplicationContext {
 }
 ```
 
-Persistent Registration Options
+Persistent Registration and Resolve Options
 -------------------------------
 If you want registration options to be persistent (applicable for every call to `register()`), you can use the container method `setPersistentRegistrationOptions()`:
 ```d
-dependencies.setPersistentRegistrationOptions(RegistrationOption.doNotAddConcreteTypeRegistration); // Sets the option
+dependencies.setPersistentRegistrationOptions(RegistrationOption.doNotAddConcreteTypeRegistration); // Sets the options
 dependencies.unsetPersistentRegistrationOptions(); // Clears the persistentent options
 ```
+Likewise, the same is possible for resolve options:
+```d
+dependencies.setPersistentResolveOptions(ResolveOption.registerBeforeResolving); // Sets the options
+dependencies.unsetPersistentResolveOptions(); // Clears the persistentent options
+```
+Please note that setting options will unset previously set options; the options specified will be the only ones in effect.

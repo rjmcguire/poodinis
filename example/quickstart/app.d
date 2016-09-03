@@ -7,8 +7,17 @@
 
 import poodinis;
 
-interface Database{};
-class RelationalDatabase : Database {}
+class Driver {}
+
+interface Database {};
+
+class RelationalDatabase : Database {
+	private Driver driver;
+
+	this(Driver driver) { // Automatically injected on creation by container
+		this.driver = driver;
+	}
+}
 
 class DataWriter {
 	@Autowire
@@ -16,7 +25,8 @@ class DataWriter {
 }
 
 void main() {
-	auto dependencies = DependencyContainer.getInstance();
+	auto dependencies = new shared DependencyContainer();
+	dependencies.register!Driver;
 	dependencies.register!DataWriter;
 	dependencies.register!(Database, RelationalDatabase);
 

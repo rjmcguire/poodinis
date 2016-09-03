@@ -20,13 +20,13 @@ version(unittest) {
 
 	// Test getting instance without scope defined throws exception
 	unittest {
-		Registration registration = new Registration(typeid(TestType), null);
-		assertThrown!(InstanceCreationException)(registration.getInstance());
+		Registration registration = new Registration(typeid(TestType), null, null, null);
+		assertThrown!(InstanceCreationException)(registration.getInstance(), null);
 	}
 
 	// Test set single instance scope using scope setter
 	unittest {
-		Registration registration = new Registration(null, typeid(TestType));
+		Registration registration = new Registration(null, typeid(TestType), new InstanceFactory(), null);
 		auto chainedRegistration = registration.singleInstance();
 		auto instance1 = registration.getInstance();
 		auto instance2 = registration.getInstance();
@@ -36,7 +36,7 @@ version(unittest) {
 
 	// Test set new instance scope using scope setter
 	unittest {
-		Registration registration = new Registration(null, typeid(TestType));
+		Registration registration = new Registration(null, typeid(TestType), new InstanceFactory(), null);
 		auto chainedRegistration = registration.newInstance();
 		auto instance1 = registration.getInstance();
 		auto instance2 = registration.getInstance();
@@ -46,7 +46,7 @@ version(unittest) {
 
 	// Test set existing instance scope using scope setter
 	unittest {
-		Registration registration = new Registration(null, null);
+		Registration registration = new Registration(null, null, new InstanceFactory(), null);
 		auto expectedInstance = new TestType();
 		auto chainedRegistration = registration.existingInstance(expectedInstance);
 		auto actualInstance = registration.getInstance();
@@ -56,68 +56,13 @@ version(unittest) {
 
 	// Test linking registrations
 	unittest {
-		Registration firstRegistration = new Registration(typeid(TestInterface), typeid(TestImplementation)).singleInstance();
-		Registration secondRegistration = new Registration(typeid(TestImplementation), typeid(TestImplementation)).singleInstance().linkTo(firstRegistration);
+		Registration firstRegistration = new Registration(typeid(TestInterface), typeid(TestImplementation), new InstanceFactory(), null).singleInstance();
+		Registration secondRegistration = new Registration(typeid(TestImplementation), typeid(TestImplementation), new InstanceFactory(), null).singleInstance().linkTo(firstRegistration);
 
 		auto firstInstance = firstRegistration.getInstance();
 		auto secondInstance = secondRegistration.getInstance();
 
 		assert(firstInstance is secondInstance);
-	}
-
-	// Test instance factory with singletons
-	unittest {
-		auto factory = new InstanceFactory(typeid(TestImplementation), CreatesSingleton.yes, null);
-		auto instanceOne = factory.getInstance();
-		auto instanceTwo = factory.getInstance();
-
-		assert(instanceOne !is null, "Created factory instance is null");
-		assert(instanceOne is instanceTwo, "Created factory instance is not the same");
-	}
-
-	// Test instance factory with new instances
-	unittest {
-		auto factory = new InstanceFactory(typeid(TestImplementation), CreatesSingleton.no, null);
-		auto instanceOne = factory.getInstance();
-		auto instanceTwo = factory.getInstance();
-
-		assert(instanceOne !is null, "Created factory instance is null");
-		assert(instanceOne !is instanceTwo, "Created factory instance is the same");
-	}
-
-	// Test instance factory with existing instances
-	unittest {
-		auto existingInstance = new TestImplementation();
-		auto factory = new InstanceFactory(typeid(TestImplementation), CreatesSingleton.yes, existingInstance);
-		auto instanceOne = factory.getInstance();
-		auto instanceTwo = factory.getInstance();
-
-		assert(instanceOne is existingInstance, "Created factory instance is not the existing instance");
-		assert(instanceTwo is existingInstance, "Created factory instance is not the existing instance when called again");
-	}
-
-	// Test instance factory with existing instances when setting singleton flag to "no"
-	unittest {
-		auto existingInstance = new TestImplementation();
-		auto factory = new InstanceFactory(typeid(TestImplementation), CreatesSingleton.no, existingInstance);
-		auto instance = factory.getInstance();
-
-		assert(instance is existingInstance, "Created factory instance is not the existing instance");
-	}
-
-	// Test creating instance using custom factory method
-	unittest {
-		Object factoryMethod() {
-			auto instance = new TestImplementation();
-			instance.someContent = "Ducks!";
-			return instance;
-		}
-
-		auto factory = new InstanceFactory(null, CreatesSingleton.yes, null, &factoryMethod);
-		auto instance = cast(TestImplementation) factory.getInstance();
-
-		assert(instance !is null, "No instance was created by factory or could not be cast to expected type");
-		assert(instance.someContent == "Ducks!");
 	}
 
 }

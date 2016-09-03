@@ -180,16 +180,55 @@ version(unittest) {
 		}
 	}
 
+	class Cocktail {
+		@Autowire
+		public Moolah moolah;
+
+		public Red red;
+
+		this(Red red) {
+			this.red = red;
+		}
+	}
+
+	class Wallpaper {
+		public Color color;
+
+		this(Color color) {
+			this.color = color;
+		}
+	}
+
+	class Pot {
+		this(Kettle kettle) {}
+	}
+
+	class Kettle {
+		this(Pot pot) {}
+	}
+
+	class Rock {
+		this(Scissors scissors) {}
+	}
+
+	class Paper {
+		this(Rock rock) {}
+	}
+
+	class Scissors {
+		this(Paper paper) {}
+	}
+
 	// Test register concrete type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		auto registration = container.register!TestClass;
 		assert(registration.registeredType == typeid(TestClass), "Type of registered type not the same");
 	}
 
 	// Test resolve registered type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!TestClass;
 		TestClass actualInstance = container.resolve!TestClass;
 		assert(actualInstance !is null, "Resolved type is null");
@@ -198,7 +237,7 @@ version(unittest) {
 
 	// Test register interface
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(TestInterface, TestClass);
 		TestInterface actualInstance = container.resolve!TestInterface;
 		assert(actualInstance !is null, "Resolved type is null");
@@ -207,19 +246,19 @@ version(unittest) {
 
 	// Test resolve non-registered type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		assertThrown!ResolveException(container.resolve!TestClass, "Resolving non-registered type does not fail");
 	}
 
 	// Test clear registrations
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!TestClass;
 		container.clearAllRegistrations();
 		assertThrown!ResolveException(container.resolve!TestClass, "Resolving cleared type does not fail");
 	}
 
-	// Test get singleton of container
+	// Test get singleton of container (DEPRECATED)
 	unittest {
 		auto instance1 = DependencyContainer.getInstance();
 		auto instance2 = DependencyContainer.getInstance();
@@ -228,7 +267,7 @@ version(unittest) {
 
 	// Test resolve single instance for type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!TestClass.singleInstance();
 		auto instance1 = container.resolve!TestClass;
 		auto instance2 = container.resolve!TestClass;
@@ -237,7 +276,7 @@ version(unittest) {
 
 	// Test resolve new instance for type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!TestClass.newInstance();
 		auto instance1 = container.resolve!TestClass;
 		auto instance2 = container.resolve!TestClass;
@@ -246,7 +285,7 @@ version(unittest) {
 
 	// Test resolve existing instance for type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		auto expectedInstance = new TestClass();
 		container.register!TestClass.existingInstance(expectedInstance);
 		auto actualInstance = container.resolve!TestClass;
@@ -255,7 +294,7 @@ version(unittest) {
 
 	// Test autowire resolved instances
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!AutowiredClass;
 		container.register!ComponentClass;
 		auto componentInstance = container.resolve!ComponentClass;
@@ -265,7 +304,7 @@ version(unittest) {
 
 	// Test circular autowiring
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!ComponentMouse;
 		container.register!ComponentCat;
 		auto mouse = container.resolve!ComponentMouse;
@@ -275,7 +314,7 @@ version(unittest) {
 
 	// Test remove registration
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!TestClass;
 		container.removeRegistration!TestClass;
 		assertThrown!ResolveException(container.resolve!TestClass);
@@ -283,7 +322,7 @@ version(unittest) {
 
 	// Test autowiring does not autowire member where instance is non-null
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		auto existingA = new AutowiredClass();
 		auto existingB = new ComponentClass();
 		existingB.autowiredClass = existingA;
@@ -298,7 +337,7 @@ version(unittest) {
 
 	// Test autowiring circular dependency by third-degree
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Eenie;
 		container.register!Meenie;
 		container.register!Moe;
@@ -310,7 +349,7 @@ version(unittest) {
 
 	// Test autowiring deep circular dependencies
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Ittie;
 		container.register!Bittie;
 		container.register!Banana;
@@ -322,7 +361,7 @@ version(unittest) {
 
 	// Test autowiring deep circular dependencies with newInstance scope does not autowire new instance second time
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Ittie.newInstance();
 		container.register!Bittie.newInstance();
 		container.register!Banana.newInstance();
@@ -334,7 +373,7 @@ version(unittest) {
 
 	// Test autowiring type registered by interface
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Banana;
 		container.register!Bittie;
 		container.register!(SuperInterface, SuperImplementation);
@@ -346,7 +385,7 @@ version(unittest) {
 
 	// Test reusing a container after clearing all registrations
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Banana;
 		container.clearAllRegistrations();
 		try {
@@ -360,14 +399,14 @@ version(unittest) {
 
 	// Test register multiple concrete classess to same interface type
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(Color, Blue);
 		container.register!(Color, Red);
 	}
 
 	// Test removing all registrations for type with multiple registrations.
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(Color, Blue);
 		container.register!(Color, Red);
 		container.removeRegistration!Color;
@@ -375,7 +414,7 @@ version(unittest) {
 
 	// Test registering same registration again
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		auto firstRegistration = container.register!(Color, Blue);
 		auto secondRegistration = container.register!(Color, Blue);
 
@@ -384,7 +423,7 @@ version(unittest) {
 
 	// Test resolve registration with multiple qualifiers
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(Color, Blue);
 		container.register!(Color, Red);
 		try {
@@ -397,7 +436,7 @@ version(unittest) {
 
 	// Test resolve registration with multiple qualifiers using a qualifier
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(Color, Blue);
 		container.register!(Color, Red);
 		auto blueInstance = container.resolve!(Color, Blue);
@@ -410,7 +449,7 @@ version(unittest) {
 
 	// Test autowire of unqualified member typed by interface.
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Spiders;
 		container.register!(TestInterface, TestClass);
 
@@ -421,7 +460,7 @@ version(unittest) {
 
 	// Register existing registration
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 
 		auto firstRegistration = container.register!TestClass;
 		auto secondRegistration = container.register!TestClass;
@@ -431,7 +470,7 @@ version(unittest) {
 
 	// Register existing registration by supertype
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 
 		auto firstRegistration = container.register!(TestInterface, TestClass);
 		auto secondRegistration = container.register!(TestInterface, TestClass);
@@ -441,7 +480,7 @@ version(unittest) {
 
 	// Resolve dependency depending on itself
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Recursive;
 
 		auto instance = container.resolve!Recursive;
@@ -452,7 +491,7 @@ version(unittest) {
 
 	// Test autowire stack pop-back
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!Moolah;
 		container.register!Wants.newInstance();
 		container.register!John;
@@ -465,7 +504,7 @@ version(unittest) {
 
 	// Test resolving registration registered in different thread
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 
 		auto thread = new Thread(delegate() {
 				container.register!TestClass;
@@ -478,7 +517,7 @@ version(unittest) {
 
 	// Test resolving instance previously resolved in different thread
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		shared(TestClass) actualTestClass;
 
 		container.register!TestClass;
@@ -496,17 +535,8 @@ version(unittest) {
 
 	// Test registering type with option doNotAddConcreteTypeRegistration
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		container.register!(TestInterface, TestClass)([RegistrationOption.doNotAddConcreteTypeRegistration]);
-
-		auto firstInstance = container.resolve!TestInterface;
-		assertThrown!ResolveException(container.resolve!TestClass);
-	}
-
-	// Test registering type with option DO_NOT_ADD_CONCRETE_TYPE_REGISTRATION (DEPRECATED)
-	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		container.register!(TestInterface, TestClass)([RegistrationOption.DO_NOT_ADD_CONCRETE_TYPE_REGISTRATION]);
+		auto container = new shared DependencyContainer();
+		container.register!(TestInterface, TestClass)(RegistrationOption.doNotAddConcreteTypeRegistration);
 
 		auto firstInstance = container.resolve!TestInterface;
 		assertThrown!ResolveException(container.resolve!TestClass);
@@ -514,23 +544,14 @@ version(unittest) {
 
 	// Test registering conrete type with registration option doNotAddConcreteTypeRegistration does nothing
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		container.register!TestClass([RegistrationOption.doNotAddConcreteTypeRegistration]);
+		auto container = new shared DependencyContainer();
+		container.register!TestClass(RegistrationOption.doNotAddConcreteTypeRegistration);
 		container.resolve!TestClass;
-	}
-
-	// Test registering type with options in the DEPRECATED way
-	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		container.register!(TestInterface, TestClass)(RegistrationOption.doNotAddConcreteTypeRegistration);
-
-		auto firstInstance = container.resolve!TestInterface;
-		assertThrown!ResolveException(container.resolve!TestClass);
 	}
 
 	// Test registering type will register by contrete type by default
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(TestInterface, TestClass);
 
 		auto firstInstance = container.resolve!TestInterface;
@@ -541,7 +562,7 @@ version(unittest) {
 
 	// Test resolving all registrations to an interface
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!(Color, Blue);
 		container.register!(Color, Red);
 
@@ -552,7 +573,7 @@ version(unittest) {
 
 	// Test autowiring instances resolved in array
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!UnrelatedClass;
 		container.register!(TestInterface, TestClassDeux);
 
@@ -564,7 +585,7 @@ version(unittest) {
 
 	// Test setting up simple dependencies through application context
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.registerContext!TestContext;
 		auto instance = container.resolve!TestClass;
 
@@ -573,7 +594,7 @@ version(unittest) {
 
 	// Test resolving dependency from registered application context
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.registerContext!TestContext;
 		auto instance = container.resolve!UnrelatedClass;
 
@@ -582,7 +603,7 @@ version(unittest) {
 
 	// Test autowiring application context
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.register!UnrelatedClass;
 		container.registerContext!AutowiredTestContext;
 		auto instance = container.resolve!ClassWrapper;
@@ -593,7 +614,7 @@ version(unittest) {
 
 	// Test autowiring application context with dependencies registered in same context
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.registerContext!ComplexAutowiredTestContext;
 		auto instance = container.resolve!ClassWrapperWrapper;
 		auto wrapper = container.resolve!ClassWrapper;
@@ -606,14 +627,14 @@ version(unittest) {
 
 	// Test resolving registered context
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.registerContext!TestContext;
 		container.resolve!ApplicationContext;
 	}
 
 	// Test set persistent registration options
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.setPersistentRegistrationOptions(RegistrationOption.doNotAddConcreteTypeRegistration);
 		container.register!(TestInterface, TestClass);
 		assertThrown!ResolveException(container.resolve!TestClass);
@@ -621,7 +642,7 @@ version(unittest) {
 
 	// Test unset persistent registration options
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.setPersistentRegistrationOptions(RegistrationOption.doNotAddConcreteTypeRegistration);
 		container.unsetPersistentRegistrationOptions();
 		container.register!(TestInterface, TestClass);
@@ -630,21 +651,21 @@ version(unittest) {
 
 	// Test registration when resolving
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		container.resolve!(TestInterface, TestClass)([ResolveOption.registerBeforeResolving]);
+		auto container = new shared DependencyContainer();
+		container.resolve!(TestInterface, TestClass)(ResolveOption.registerBeforeResolving);
 		container.resolve!TestClass;
 	}
 
 	// Test set persistent resolve options
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.setPersistentResolveOptions(ResolveOption.registerBeforeResolving);
 		container.resolve!TestClass;
 	}
 
 	// Test unset persistent resolve options
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
+		auto container = new shared DependencyContainer();
 		container.setPersistentResolveOptions(ResolveOption.registerBeforeResolving);
 		container.unsetPersistentResolveOptions();
 		assertThrown!ResolveException(container.resolve!TestClass);
@@ -652,21 +673,65 @@ version(unittest) {
 
 	// Test ResolveOption registerBeforeResolving fails for interfaces
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		assertThrown!ResolveException(container.resolve!TestInterface([ResolveOption.registerBeforeResolving]));
+		auto container = new shared DependencyContainer();
+		assertThrown!ResolveException(container.resolve!TestInterface(ResolveOption.registerBeforeResolving));
 	}
 
 	// Test ResolveOption noResolveException does not throw
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		auto instance = container.resolve!TestInterface([ResolveOption.noResolveException]);
+		auto container = new shared DependencyContainer();
+		auto instance = container.resolve!TestInterface(ResolveOption.noResolveException);
 		assert(instance is null);
 	}
 
 	// ResolveOption noResolveException does not throw for resolveAll
 	unittest {
-		shared(DependencyContainer) container = new DependencyContainer();
-		auto instances = container.resolveAll!TestInterface([ResolveOption.noResolveException]);
+		auto container = new shared DependencyContainer();
+		auto instances = container.resolveAll!TestInterface(ResolveOption.noResolveException);
 		assert(instances.length == 0);
+	}
+
+	// Test autowired, constructor injected class
+	unittest {
+		auto container = new shared DependencyContainer();
+		container.register!Red;
+		container.register!Moolah;
+		container.register!Cocktail;
+
+		auto instance = container.resolve!Cocktail;
+
+		assert(instance !is null);
+		assert(instance.moolah is container.resolve!Moolah);
+		assert(instance.red is container.resolve!Red);
+	}
+
+	// Test injecting constructor with super-type parameter
+	unittest {
+		auto container = new shared DependencyContainer();
+		container.register!Wallpaper;
+		container.register!(Color, Blue);
+
+		auto instance = container.resolve!Wallpaper;
+		assert(instance !is null);
+		assert(instance.color is container.resolve!Blue);
+	}
+
+	// Test prevention of circular dependencies during constructor injection
+	unittest {
+		auto container = new shared DependencyContainer();
+		container.register!Pot;
+		container.register!Kettle;
+
+		assertThrown!InstanceCreationException(container.resolve!Pot);
+	}
+
+	// Test prevention of transitive circular dependencies during constructor injection
+	unittest {
+		auto container = new shared DependencyContainer();
+		container.register!Rock;
+		container.register!Paper;
+		container.register!Scissors;
+
+		assertThrown!InstanceCreationException(container.resolve!Rock);
 	}
 }

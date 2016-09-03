@@ -13,24 +13,15 @@
 
 module poodinis.registration;
 
-import std.typecons;
-import std.exception;
-
-debug {
-	import std.stdio;
-	import std.string;
-}
-
-class InstanceCreationException : Exception {
-	this(string message, string file = __FILE__, size_t line = __LINE__) {
-		super(message, file, line);
-	}
-}
+import poodinis.container;
+import poodinis.factory;
 
 class Registration {
 	private TypeInfo _registeredType = null;
 	private TypeInfo_Class _instanceType = null;
 	private Registration linkedRegistration;
+	private shared(DependencyContainer) _originatingContainer;
+	private InstanceFactory _instanceFactory;
 
 	public @property registeredType() {
 		return _registeredType;
@@ -40,11 +31,19 @@ class Registration {
 		return _instanceType;
 	}
 
-	public InstanceFactory instanceFactory = null;
+	public @property originatingContainer() {
+		return _originatingContainer;
+	}
 
-	this(TypeInfo registeredType, TypeInfo_Class instanceType) {
+	public @property instanceFactory() {
+		return _instanceFactory;
+	}
+
+	this(TypeInfo registeredType, TypeInfo_Class instanceType, InstanceFactory instanceFactory, shared(DependencyContainer) originatingContainer) {
 		this._registeredType = registeredType;
 		this._instanceType = instanceType;
+		this._originatingContainer = originatingContainer;
+		this._instanceFactory = instanceFactory;
 	}
 
 	public Object getInstance(InstantiationContext context = new InstantiationContext()) {
@@ -66,52 +65,13 @@ class Registration {
 	}
 }
 
-alias CreatesSingleton = Flag!"CreatesSingleton";
-alias InstanceFactoryMethod = Object delegate();
-
-class InstanceFactory {
-	private TypeInfo_Class instanceType = null;
-	private Object instance = null;
-	private CreatesSingleton createsSingleton;
-	private InstanceFactoryMethod factoryMethod;
-
-	this(TypeInfo_Class instanceType, CreatesSingleton createsSingleton = CreatesSingleton.yes, Object existingInstance = null, InstanceFactoryMethod factoryMethod = null) {
-		this.instanceType = instanceType;
-		this.createsSingleton = existingInstance !is null ? CreatesSingleton.yes : createsSingleton;
-		this.instance = existingInstance;
-		this.factoryMethod = factoryMethod !is null ? factoryMethod : &this.createInstance;
-	}
-
-	public Object getInstance() {
-		if (createsSingleton && instance !is null) {
-			debug(poodinisVerbose) {
-				writeln(format("DEBUG: Existing instance returned of type %s", instanceType.toString()));
-			}
-
-			return instance;
-		}
-
-		debug(poodinisVerbose) {
-			writeln(format("DEBUG: Creating new instance of type %s", instanceType.toString()));
-		}
-
-		instance = factoryMethod();
-		return instance;
-	}
-
-	private Object createInstance() {
-		enforce!InstanceCreationException(instanceType, "Instance type is not defined, cannot create instance without knowing its type.");
-		return instanceType.create();
-	}
-}
-
 /**
  * Scopes registrations to return the same instance every time a given registration is resolved.
  *
  * Effectively makes the given registration a singleton.
  */
 public Registration singleInstance(Registration registration) {
-	registration.instanceFactory = new InstanceFactory(registration.instanceType, CreatesSingleton.yes, null);
+	registration.instanceFactory.factoryParameters = InstanceFactoryParameters(registration.instanceType, CreatesSingleton.yes);
 	return registration;
 }
 
@@ -119,7 +79,7 @@ public Registration singleInstance(Registration registration) {
  * Scopes registrations to return a new instance every time the given registration is resolved.
  */
 public Registration newInstance(Registration registration) {
-	registration.instanceFactory = new InstanceFactory(registration.instanceType, CreatesSingleton.no, null);
+	registration.instanceFactory.factoryParameters = InstanceFactoryParameters(registration.instanceType, CreatesSingleton.no);
 	return registration;
 }
 
@@ -127,7 +87,7 @@ public Registration newInstance(Registration registration) {
  * Scopes registrations to return the given instance every time the given registration is resolved.
  */
 public Registration existingInstance(Registration registration, Object instance) {
-	registration.instanceFactory = new InstanceFactory(registration.instanceType, CreatesSingleton.yes, instance);
+	registration.instanceFactory.factoryParameters = InstanceFactoryParameters(registration.instanceType, CreatesSingleton.yes, instance);
 	return registration;
 }
 

@@ -1,20 +1,28 @@
 Poodinis Dependency Injection Framework
 =======================================
-Version 6.2.0  
+Version 7.0.0  
 Copyright 2014-2016 Mike Bierlee  
 Licensed under the terms of the MIT license - See [LICENSE.txt](LICENSE.txt)
 
 Master: [![Build Status](https://api.travis-ci.org/mbierlee/poodinis.png?branch=master)](https://travis-ci.org/mbierlee/poodinis) - Dev: [![Build Status](https://api.travis-ci.org/mbierlee/poodinis.png?branch=develop)](https://travis-ci.org/mbierlee/poodinis)
 
-Poodinis is a dependency injection framework for the D programming language. It is inspired by the [Spring Framework] and [Hypodermic] IoC container for C++. Poodinis supports registering and resolving classes either by concrete type or interface. Automatic injection of dependencies is supported through the use of UDAs (Referred to as autowiring).
+Poodinis is a dependency injection framework for the D programming language. It is inspired by the [Spring Framework] and [Hypodermic] IoC container for C++. Poodinis supports registering and resolving classes either by concrete type or interface. Automatic injection of dependencies is supported through the use of UDAs or constructors.
 
 Requires at least a D 2.068.0 compatible compiler  
 Uses the Phobos standard library  
-Can be built with DUB 0.9.24
+Can be built with DUB 0.9.24 or higher
 
-History
--------
-For a full overview of changes, see [CHANGES.md](CHANGES.md)
+Features
+--------
+* Member injection: Injection of dependencies in class members of any visibility (public, private, etc.)
+* Constructor injection: Automatic injection of dependencies in class constructors on creation.
+* Type qualifiers: Inject concrete types into members defined only by abstract types.
+* Application contexts: Control the creation of dependencies manually through factory methods.
+* Multi-threadable: Dependency containers return the same dependencies across all threads.
+* Minimal set-up: Creation and injection of conventional classes requires almost no manual dependency configuration.
+* Well-tested: Developed test-driven, a great number of scenarios are tested as part of the test suite.  
+
+See the [TUTORIAL.md](TUTORIAL.md) and [examples](example) for a complete walkthrough of all features.
 
 Getting started
 ---------------
@@ -26,8 +34,17 @@ The following example shows the typical usage of Poodinis:
 ```d
 import poodinis;
 
-interface Database{};
-class RelationalDatabase : Database {}
+class Driver {}
+
+interface Database {};
+
+class RelationalDatabase : Database {
+	private Driver driver;
+
+	this(Driver driver) { // Automatically injected on creation by container
+		this.driver = driver;
+	}
+}
 
 class DataWriter {
 	@Autowire
@@ -35,17 +52,15 @@ class DataWriter {
 }
 
 void main() {
-	auto dependencies = DependencyContainer.getInstance();
+	auto dependencies = new shared DependencyContainer();
+	dependencies.register!Driver;
 	dependencies.register!DataWriter;
 	dependencies.register!(Database, RelationalDatabase);
 
 	auto writer = dependencies.resolve!DataWriter;
 }
 ```
-For more examples, see the [examples](example) directory.
-
-###Tutorial
-For an extended tutorial walking you through all functionality offered by Poodinis, see [TUTORIAL.md](TUTORIAL.md)
+Dependency set-up can further be reduced by enabling "Register on resolve". For more details and examples, see the [examples](example) directory.
 
 Documentation
 -------------
@@ -55,11 +70,14 @@ dub build --build=ddox
 ```
 The documentation can then be found in docs/
 
+History
+-------
+For a full overview of changes, see [CHANGES.md](CHANGES.md)
+
 Future Work
 -----------
 * Component scan (auto-registration)
 * Phobos collections autowiring
-* Constructor injection
 * Named qualifiers
 * Value type injection
 
